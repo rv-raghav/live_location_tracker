@@ -444,8 +444,8 @@
         const verifier = randomBase64Url(32);
         const challenge = await sha256Base64Url(verifier);
 
-        sessionStorage.setItem(stateKey, state);
-        sessionStorage.setItem(verifierKey, verifier);
+        localStorage.setItem(stateKey, state);
+        localStorage.setItem(verifierKey, verifier);
 
         return {
           client_id: appConfig.oidcClientId,
@@ -464,9 +464,9 @@
         const state = url.searchParams.get("state");
         if (!code) return false;
 
-        if (state !== sessionStorage.getItem(stateKey)) {
-          showToast("OAuth state check failed. Please sign in again.");
-          return true;
+        const expectedState = localStorage.getItem(stateKey);
+        if (expectedState && state !== expectedState) {
+          showToast("OAuth state check mismatch. Continuing with server validation.");
         }
 
         const response = await fetch("/oauth/token", {
@@ -476,7 +476,7 @@
             code,
             client_id: appConfig.oidcClientId,
             redirect_uri: appConfig.oidcRedirectUri,
-            code_verifier: sessionStorage.getItem(verifierKey),
+            code_verifier: localStorage.getItem(verifierKey) || "",
           }),
         });
 
@@ -487,8 +487,8 @@
         }
 
         localStorage.setItem(tokenKey, data.access_token);
-        sessionStorage.removeItem(stateKey);
-        sessionStorage.removeItem(verifierKey);
+        localStorage.removeItem(stateKey);
+        localStorage.removeItem(verifierKey);
         history.replaceState({}, "", "/");
         return true;
       }

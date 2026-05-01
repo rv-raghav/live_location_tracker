@@ -185,6 +185,7 @@ app.post("/auth/sign-in", async (req, res) => {
 
 app.get("/auth/google/start", async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store, no-cache, max-age=0");
     requireOAuthFields(req.query);
     const redirectTo = await createGoogleAuthorizationUrl({
       clientId: req.query.client_id,
@@ -202,6 +203,7 @@ app.get("/auth/google/start", async (req, res) => {
 
 app.get("/auth/google/callback", async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store, no-cache, max-age=0");
     const { code, state, error, error_description } = req.query;
     if (error) {
       res.status(400).send(error_description || error);
