@@ -2,40 +2,87 @@ import crypto from "node:crypto";
 import { config } from "./config.js";
 import { createCodeChallenge } from "./oidc.js";
 
-const googleLoginStates = new Map();
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 
 function isGoogleConfigured() {
-  return Boolean(config.google.clientId && config.google.clientSecret);
+  return Boolean(
+    config.google.clientId &&
+      config.google.clientSecret &&
+      config.google.stateSigningSecret,
+  );
 }
 
-function cleanupStates() {
-  const now = Date.now();
-  for (const [state, record] of googleLoginStates) {
-    if (record.expiresAt <= now) googleLoginStates.delete(state);
+function encodeState(localOAuth) {
+  const payload = {
+    ...localOAuth,
+    googleVerifier: crypto.randomBytes(32).toString("base64url"),
+    exp: Date.now() + 10 * 60 * 1000,
+  };
+  const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const signature = crypto
+    .createHmac("sha256", config.google.stateSigningSecret)
+    .update(payloadB64)
+    .digest("base64url");
+  return {
+    state: `${payloadB64}.${signature}`,
+    googleVerifier: payload.googleVerifier,
+  };
+}
+
+function decodeState(state) {
+  const [payloadB64, signature] = String(state).split(".");
+  if (!payloadB64 || !signature) {
+    const error = new Error("Invalid or expired Google OAuth state.");
+    error.statusCode = 400;
+    throw error;
   }
+
+  const expected = crypto
+    .createHmac("sha256", config.google.stateSigningSecret)
+    .update(payloadB64)
+    .digest("base64url");
+
+  const sigBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (
+    sigBuffer.length !== expectedBuffer.length ||
+    !crypto.timingSafeEqual(sigBuffer, expectedBuffer)
+  ) {
+    const error = new Error("Invalid or expired Google OAuth state.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  let payload;
+  try {
+    payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
+  } catch {
+    const error = new Error("Invalid or expired Google OAuth state.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!payload.exp || payload.exp < Date.now()) {
+    const error = new Error("Invalid or expired Google OAuth state.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return payload;
 }
 
 export function createGoogleAuthorizationUrl(localOAuth) {
   if (!isGoogleConfigured()) {
     const error = new Error(
-      "Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+      "Google OAuth is not configured. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_STATE_SIGNING_SECRET.",
     );
     error.statusCode = 501;
     throw error;
   }
 
-  cleanupStates();
-  const googleState = crypto.randomBytes(32).toString("base64url");
-  const googleVerifier = crypto.randomBytes(32).toString("base64url");
-
-  googleLoginStates.set(googleState, {
-    ...localOAuth,
-    googleVerifier,
-    expiresAt: Date.now() + 10 * 60 * 1000,
-  });
+  const { state: googleState, googleVerifier } = encodeState(localOAuth);
 
   const url = new URL(GOOGLE_AUTH_URL);
   url.searchParams.set("client_id", config.google.clientId);
@@ -51,17 +98,7 @@ export function createGoogleAuthorizationUrl(localOAuth) {
 }
 
 export function consumeGoogleState(state) {
-  cleanupStates();
-  const record = googleLoginStates.get(state);
-  googleLoginStates.delete(state);
-
-  if (!record || record.expiresAt < Date.now()) {
-    const error = new Error("Invalid or expired Google OAuth state.");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  return record;
+  return decodeState(state);
 }
 
 export async function exchangeGoogleCodeForProfile({ code, googleVerifier }) {

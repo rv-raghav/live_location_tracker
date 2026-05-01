@@ -81,6 +81,8 @@ export const config = {
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID ?? "",
     clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    stateSigningSecret:
+      process.env.GOOGLE_STATE_SIGNING_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "",
     redirectUri:
       process.env.GOOGLE_REDIRECT_URI ??
       `${publicBaseUrl}/auth/google/callback`,
