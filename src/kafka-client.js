@@ -8,7 +8,9 @@ const kafkaConnection = {
 };
 
 if (config.kafka.ssl) {
-  kafkaConnection.ssl = true;
+  kafkaConnection.ssl = config.kafka.caCert
+    ? { ca: [config.kafka.caCert] }
+    : true;
 }
 
 if (config.kafka.username && config.kafka.password) {

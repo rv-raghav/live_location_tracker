@@ -14,6 +14,42 @@ const booleanFromEnv = (key, fallback = false) => {
   return ["1", "true", "yes", "on"].includes(value.toLowerCase());
 };
 
+const normalizePemFromEnv = (key) => {
+  const value = process.env[key];
+  if (!value) return "";
+  return value.replace(/\\n/g, "\n").trim();
+};
+
+function normalizeKafkaBroker(rawBroker) {
+  const broker = rawBroker.trim();
+  if (!broker) return "";
+
+  // KafkaJS expects broker entries as host:port. If a scheme is provided
+  // (e.g. https://host:443), strip it for compatibility.
+  if (broker.includes("://")) {
+    try {
+      const parsed = new URL(broker);
+      if (!parsed.hostname || !parsed.port) {
+        throw new Error();
+      }
+      return `${parsed.hostname}:${parsed.port}`;
+    } catch {
+      throw new Error(
+        `Invalid KAFKA_BROKERS entry: "${rawBroker}". Use host:port format.`,
+      );
+    }
+  }
+
+  const [host, port] = broker.split(":");
+  if (!host || !port || !Number.isInteger(Number(port))) {
+    throw new Error(
+      `Invalid KAFKA_BROKERS entry: "${rawBroker}". Use host:port format.`,
+    );
+  }
+
+  return `${host}:${Number(port)}`;
+}
+
 const renderExternalUrl = process.env.RENDER_EXTERNAL_URL;
 const localBaseUrl = `http://localhost:${process.env.PORT ?? 8000}`;
 const publicBaseUrl = process.env.PUBLIC_BASE_URL ?? renderExternalUrl ?? localBaseUrl;
@@ -25,10 +61,11 @@ export const config = {
     clientId: process.env.KAFKA_CLIENT_ID ?? "live-location-tracker",
     brokers: (process.env.KAFKA_BROKERS ?? "localhost:9092")
       .split(",")
-      .map((broker) => broker.trim())
+      .map(normalizeKafkaBroker)
       .filter(Boolean),
     topic: process.env.KAFKA_LOCATION_TOPIC ?? "location-updates",
     ssl: booleanFromEnv("KAFKA_SSL", false),
+    caCert: normalizePemFromEnv("KAFKA_CA_CERT"),
     username: process.env.KAFKA_USERNAME ?? "",
     password: process.env.KAFKA_PASSWORD ?? "",
     saslMechanism: process.env.KAFKA_SASL_MECHANISM ?? "plain",
