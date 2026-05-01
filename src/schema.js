@@ -35,4 +35,5 @@ export const googleOAuthStates = pgTable("google_oauth_states", {
   codeChallengeMethod: text("code_challenge_method"),
   googleVerifier: text("google_verifier").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
 });

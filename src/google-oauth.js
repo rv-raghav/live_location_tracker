@@ -41,7 +41,8 @@ export async function createGoogleAuthorizationUrl(localOAuth) {
     codeChallenge: localOAuth.codeChallenge ?? null,
     codeChallengeMethod: localOAuth.codeChallengeMethod ?? null,
     googleVerifier,
-    expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+    consumedAt: null,
   });
 
   const url = new URL(GOOGLE_AUTH_URL);
@@ -63,9 +64,25 @@ export async function consumeGoogleState(state) {
   const record = await db.query.googleOAuthStates.findFirst({
     where: eq(googleOAuthStates.state, state),
   });
-  await db.delete(googleOAuthStates).where(eq(googleOAuthStates.state, state));
 
   if (!record || record.expiresAt.getTime() < Date.now()) {
+    await db.delete(googleOAuthStates).where(eq(googleOAuthStates.state, state));
+    const error = new Error("Invalid or expired Google OAuth state.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const now = Date.now();
+  const alreadyConsumedRecently =
+    record.consumedAt && now - record.consumedAt.getTime() <= 60 * 1000;
+
+  if (!record.consumedAt) {
+    await db
+      .update(googleOAuthStates)
+      .set({ consumedAt: new Date(now) })
+      .where(eq(googleOAuthStates.state, state));
+  } else if (!alreadyConsumedRecently) {
+    await db.delete(googleOAuthStates).where(eq(googleOAuthStates.state, state));
     const error = new Error("Invalid or expired Google OAuth state.");
     error.statusCode = 400;
     throw error;

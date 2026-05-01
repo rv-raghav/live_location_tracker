@@ -55,7 +55,13 @@ export async function ensureDatabaseSchema() {
       code_challenge TEXT,
       code_challenge_method TEXT,
       google_verifier TEXT NOT NULL,
-      expires_at TIMESTAMPTZ NOT NULL
+      expires_at TIMESTAMPTZ NOT NULL,
+      consumed_at TIMESTAMPTZ
     )
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE google_oauth_states
+    ADD COLUMN IF NOT EXISTS consumed_at TIMESTAMPTZ
   `);
 }
