@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Live Location Tracker</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        --ink: #17202a;
+        --muted: #667085;
+        --line: #d8dee7;
+        --surface: #ffffff;
+        --panel: #f7f9fb;
+        --blue: #1769aa;
+        --green: #17875a;
+        --red: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--panel);
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 340px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        background: var(--surface);
+        border-right: 1px solid var(--line);
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .brand-mark {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        color: white;
+        background: var(--blue);
+        font-weight: 800;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 1.05rem;
+      }
+
+      h2 {
+        font-size: 0.95rem;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+
+      .auth-panel,
+      .status-panel,
+      .users-panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+
+      .panel-body {
+        padding: 14px;
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .tab {
+        border: 0;
+        background: transparent;
+        padding: 11px;
+        cursor: pointer;
+        color: var(--muted);
+        border-bottom: 2px solid transparent;
+      }
+
+      .tab.active {
+        color: var(--blue);
+        border-bottom-color: var(--blue);
+        font-weight: 700;
+      }
+
+      label {
+        display: block;
+        color: #344054;
+        font-size: 0.82rem;
+        font-weight: 700;
+        margin: 10px 0 5px;
+      }
+
+      input {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 10px;
+        background: white;
+      }
+
+      .primary-btn,
+      .secondary-btn,
+      .google-btn {
+        width: 100%;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        padding: 10px 12px;
+        margin-top: 12px;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      .primary-btn {
+        color: white;
+        background: var(--blue);
+      }
+
+      .secondary-btn {
+        color: var(--ink);
+        background: white;
+        border-color: var(--line);
+      }
+
+      .google-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        color: var(--ink);
+        background: white;
+        border-color: var(--line);
+      }
+
+      .primary-btn:disabled,
+      .secondary-btn:disabled,
+      .google-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .status-row,
+      .user-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 9px 0;
+        border-bottom: 1px solid #eef2f6;
+      }
+
+      .status-row:last-child,
+      .user-row:last-child {
+        border-bottom: 0;
+      }
+
+      .pill {
+        flex: 0 0 auto;
+        border-radius: 999px;
+        padding: 3px 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--muted);
+        background: #eef2f6;
+      }
+
+      .pill.good {
+        color: var(--green);
+        background: #e8f5ee;
+      }
+
+      .pill.bad {
+        color: var(--red);
+        background: #fff0ed;
+      }
+
+      .map-wrap {
+        min-height: 100vh;
+        position: relative;
+      }
+
+      #map {
+        position: absolute;
+        inset: 0;
+      }
+
+      .toast {
+        position: absolute;
+        left: 16px;
+        bottom: 18px;
+        z-index: 500;
+        max-width: min(520px, calc(100vw - 32px));
+        background: #17202a;
+        color: white;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 0.9rem;
+        box-shadow: 0 12px 30px rgba(23, 32, 42, 0.24);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .marker-self {
+        filter: hue-rotate(115deg) saturate(1.4);
+      }
+
+      @media (max-width: 800px) {
+        .app {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto minmax(440px, 1fr);
+        }
+
+        .sidebar {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .map-wrap {
+          min-height: 62vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">LL</div>
+          <div>
+            <h1>Live Location Tracker</h1>
+            <p class="muted">Authenticated movement over Socket.IO and Kafka.</p>
+          </div>
+        </div>
+
+        <section id="authPanel" class="auth-panel">
+          <div class="tabs">
+            <button id="signInTab" class="tab active" type="button">Sign in</button>
+            <button id="signUpTab" class="tab" type="button">Sign up</button>
+          </div>
+          <form id="authForm" class="panel-body">
+            <div id="nameField" class="hidden">
+              <label for="name">Name</label>
+              <input id="name" autocomplete="name" placeholder="Ada Lovelace" />
+            </div>
+            <label for="email">Email</label>
+            <input id="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+            <label for="password">Password</label>
+            <input id="password" type="password" autocomplete="current-password" minlength="6" required />
+            <button id="authSubmit" class="primary-btn" type="submit">Sign in</button>
+            <button id="googleSignIn" class="google-btn" type="button">
+              <span aria-hidden="true">G</span>
+              <span>Continue with Google</span>
+            </button>
+            <p id="authMessage" class="muted" style="margin-top: 10px"></p>
+          </form>
+        </section>
+
+        <section id="statusPanel" class="status-panel hidden">
+          <div class="panel-body">
+            <h2 id="profileName">Signed in</h2>
+            <p id="profileEmail" class="muted"></p>
+            <div class="status-row">
+              <span>Socket</span>
+              <span id="socketStatus" class="pill">offline</span>
+            </div>
+            <div class="status-row">
+              <span>Location sharing</span>
+              <span id="locationStatus" class="pill">waiting</span>
+            </div>
+            <div class="status-row">
+              <span>Last update</span>
+              <span id="lastUpdate" class="muted">never</span>
+            </div>
+            <button id="startSharing" class="primary-btn" type="button">Start sharing</button>
+            <button id="stopSharing" class="secondary-btn" type="button" disabled>Stop sharing</button>
+            <button id="logout" class="secondary-btn" type="button">Logout</button>
+          </div>
+        </section>
+
+        <section class="users-panel">
+          <div class="panel-body">
+            <h2>Visible users</h2>
+            <div id="usersList" style="margin-top: 8px">
+              <p class="muted">No live users yet.</p>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <section class="map-wrap">
+        <div id="map"></div>
+        <div id="toast" class="toast hidden"></div>
+      </section>
+    </main>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const tokenKey = "live-location-token";
+      const verifierKey = "live-location-code-verifier";
+      const stateKey = "live-location-oauth-state";
+      const markers = new Map();
+      const users = new Map();
+
+      let appConfig = null;
+      let socket = null;
+      let shareTimer = null;
+      let currentUser = null;
+      let authMode = "sign-in";
+
+      const map = L.map("map", { zoomControl: true }).setView([28.6139, 77.209], 13);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(map);
+
+      const els = {
+        authPanel: document.getElementById("authPanel"),
+        statusPanel: document.getElementById("statusPanel"),
+        signInTab: document.getElementById("signInTab"),
+        signUpTab: document.getElementById("signUpTab"),
+        nameField: document.getElementById("nameField"),
+        authForm: document.getElementById("authForm"),
+        authSubmit: document.getElementById("authSubmit"),
+        googleSignIn: document.getElementById("googleSignIn"),
+        authMessage: document.getElementById("authMessage"),
+        name: document.getElementById("name"),
+        email: document.getElementById("email"),
+        password: document.getElementById("password"),
+        profileName: document.getElementById("profileName"),
+        profileEmail: document.getElementById("profileEmail"),
+        socketStatus: document.getElementById("socketStatus"),
+        locationStatus: document.getElementById("locationStatus"),
+        lastUpdate: document.getElementById("lastUpdate"),
+        startSharing: document.getElementById("startSharing"),
+        stopSharing: document.getElementById("stopSharing"),
+        logout: document.getElementById("logout"),
+        usersList: document.getElementById("usersList"),
+        toast: document.getElementById("toast"),
+      };
+
+      function showToast(message) {
+        els.toast.textContent = message;
+        els.toast.classList.remove("hidden");
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => els.toast.classList.add("hidden"), 4500);
+      }
+
+      function setPill(el, label, state) {
+        el.textContent = label;
+        el.className = `pill ${state || ""}`.trim();
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (char) => {
+          return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;",
+          }[char];
+        });
+      }
+
+      function switchAuthMode(mode) {
+        authMode = mode;
+        els.signInTab.classList.toggle("active", mode === "sign-in");
+        els.signUpTab.classList.toggle("active", mode === "sign-up");
+        els.nameField.classList.toggle("hidden", mode !== "sign-up");
+        els.authSubmit.textContent = mode === "sign-in" ? "Sign in" : "Create account";
+      }
+
+      async function sha256Base64Url(value) {
+        const bytes = new TextEncoder().encode(value);
+        const digest = await crypto.subtle.digest("SHA-256", bytes);
+        return btoa(String.fromCharCode(...new Uint8Array(digest)))
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
+      }
+
+      function randomBase64Url(bytes = 32) {
+        const data = new Uint8Array(bytes);
+        crypto.getRandomValues(data);
+        return btoa(String.fromCharCode(...data))
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
+      }
+
+      async function oauthFields() {
+        const state = randomBase64Url(16);
+        const verifier = randomBase64Url(32);
+        const challenge = await sha256Base64Url(verifier);
+
+        sessionStorage.setItem(stateKey, state);
+        sessionStorage.setItem(verifierKey, verifier);
+
+        return {
+          client_id: appConfig.oidcClientId,
+          redirect_uri: appConfig.oidcRedirectUri,
+          response_type: "code",
+          scope: "openid profile email",
+          state,
+          code_challenge: challenge,
+          code_challenge_method: "S256",
+        };
+      }
+
+      async function exchangeCodeIfPresent() {
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        const state = url.searchParams.get("state");
+        if (!code) return false;
+
+        if (state !== sessionStorage.getItem(stateKey)) {
+          showToast("OAuth state check failed. Please sign in again.");
+          return true;
+        }
+
+        const response = await fetch("/oauth/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code,
+            client_id: appConfig.oidcClientId,
+            redirect_uri: appConfig.oidcRedirectUri,
+            code_verifier: sessionStorage.getItem(verifierKey),
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          showToast(data.message || "Token exchange failed.");
+          return true;
+        }
+
+        localStorage.setItem(tokenKey, data.access_token);
+        sessionStorage.removeItem(stateKey);
+        sessionStorage.removeItem(verifierKey);
+        history.replaceState({}, "", "/");
+        return true;
+      }
+
+      async function loadProfile() {
+        const token = localStorage.getItem(tokenKey);
+        if (!token) return null;
+
+        const response = await fetch("/oauth/userinfo", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+          localStorage.removeItem(tokenKey);
+          return null;
+        }
+
+        return response.json();
+      }
+
+      function renderUsers() {
+        const rows = Array.from(users.values()).sort((a, b) =>
+          a.userName.localeCompare(b.userName),
+        );
+
+        if (rows.length === 0) {
+          els.usersList.innerHTML = '<p class="muted">No live users yet.</p>';
+          return;
+        }
+
+        els.usersList.innerHTML = rows
+          .map((user) => {
+            const self = currentUser?.sub === user.userId ? "You" : "Other";
+            const updated = user.updatedAt
+              ? new Date(user.updatedAt).toLocaleTimeString()
+              : "online";
+            return `<div class="user-row"><div><strong>${escapeHtml(user.userName)}</strong><p class="muted">${escapeHtml(updated)}</p></div><span class="pill">${self}</span></div>`;
+          })
+          .join("");
+      }
+
+      function updateMarker(event) {
+        const isSelf = currentUser?.sub === event.userId;
+        const popupName = escapeHtml(isSelf ? "You" : event.userName);
+        const popupLocation = `${event.latitude.toFixed(5)}, ${event.longitude.toFixed(5)}`;
+        users.set(event.userId, event);
+
+        if (!markers.has(event.userId)) {
+          const marker = L.marker([event.latitude, event.longitude], {
+            title: event.userName,
+          })
+            .addTo(map)
+            .bindPopup(`${popupName}<br>${popupLocation}`);
+
+          if (isSelf) marker.getElement()?.classList.add("marker-self");
+          markers.set(event.userId, marker);
+        } else {
+          const marker = markers.get(event.userId);
+          marker.setLatLng([event.latitude, event.longitude]);
+          marker.setPopupContent(`${popupName}<br>${popupLocation}`);
+        }
+
+        if (isSelf) {
+          els.lastUpdate.textContent = new Date(event.updatedAt).toLocaleTimeString();
+        }
+
+        renderUsers();
+      }
+
+      function removeUser(userId) {
+        users.delete(userId);
+        const marker = markers.get(userId);
+        if (marker) {
+          map.removeLayer(marker);
+          markers.delete(userId);
+        }
+        renderUsers();
+      }
+
+      function connectSocket() {
+        const token = localStorage.getItem(tokenKey);
+        socket = io({ auth: { token } });
+
+        socket.on("connect", () => setPill(els.socketStatus, "online", "good"));
+        socket.on("disconnect", () => setPill(els.socketStatus, "offline", "bad"));
+        socket.on("connect_error", (error) => showToast(error.message));
+        socket.on("server:active-users", (activeUsers) => {
+          activeUsers.forEach((user) => {
+            users.set(user.userId, {
+              userId: user.userId,
+              userName: user.userName,
+              updatedAt: user.lastLocation?.updatedAt,
+              latitude: user.lastLocation?.latitude,
+              longitude: user.lastLocation?.longitude,
+            });
+
+            if (user.lastLocation) {
+              updateMarker({
+                userId: user.userId,
+                userName: user.userName,
+                latitude: user.lastLocation.latitude,
+                longitude: user.lastLocation.longitude,
+                accuracy: user.lastLocation.accuracy,
+                updatedAt: user.lastLocation.updatedAt,
+              });
+            }
+          });
+          renderUsers();
+        });
+        socket.on("server:user:online", (user) => {
+          users.set(user.userId, { ...user, updatedAt: null });
+          renderUsers();
+        });
+        socket.on("server:user:offline", ({ userId }) => {
+          const user = users.get(userId);
+          if (user) {
+            user.updatedAt = "offline";
+            users.set(userId, user);
+            renderUsers();
+          }
+        });
+        socket.on("server:user:stale", ({ userId }) => removeUser(userId));
+        socket.on("server:location:update", updateMarker);
+        socket.on("server:location:error", (error) => showToast(error.message));
+      }
+
+      function getCurrentPosition() {
+        return new Promise((resolve, reject) => {
+          if (!("geolocation" in navigator)) {
+            reject(new Error("Geolocation is not available in this browser."));
+            return;
+          }
+
+          navigator.geolocation.getCurrentPosition(
+            (position) =>
+              resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+              }),
+            reject,
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 2000 },
+          );
+        });
+      }
+
+      async function sendLocationOnce() {
+        const position = await getCurrentPosition();
+        const event = {
+          ...position,
+          eventId: crypto.randomUUID(),
+          sentAt: new Date().toISOString(),
+        };
+
+        socket.emit("client:location:update", event, (ack) => {
+          if (!ack?.ok) showToast(ack?.message || "Location update failed.");
+        });
+
+        if (currentUser) {
+          updateMarker({
+            userId: currentUser.sub,
+            userName: currentUser.name,
+            latitude: position.latitude,
+            longitude: position.longitude,
+            accuracy: position.accuracy,
+            updatedAt: event.sentAt,
+          });
+          map.setView([position.latitude, position.longitude], Math.max(map.getZoom(), 15));
+        }
+      }
+
+      async function startSharing() {
+        try {
+          await sendLocationOnce();
+          shareTimer = window.setInterval(sendLocationOnce, appConfig.locationUpdateIntervalMs);
+          setPill(els.locationStatus, "sharing", "good");
+          els.startSharing.disabled = true;
+          els.stopSharing.disabled = false;
+        } catch (error) {
+          setPill(els.locationStatus, "blocked", "bad");
+          showToast(error.message);
+        }
+      }
+
+      function stopSharing() {
+        window.clearInterval(shareTimer);
+        shareTimer = null;
+        setPill(els.locationStatus, "paused", "");
+        els.startSharing.disabled = false;
+        els.stopSharing.disabled = true;
+      }
+
+      async function submitAuth(event) {
+        event.preventDefault();
+        els.authSubmit.disabled = true;
+        els.authMessage.textContent = "";
+
+        try {
+          const fields = await oauthFields();
+          const endpoint = authMode === "sign-in" ? "/auth/sign-in" : "/auth/sign-up";
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...fields,
+              name: els.name.value,
+              email: els.email.value,
+              password: els.password.value,
+            }),
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            els.authMessage.textContent = data.message || "Authentication failed.";
+            return;
+          }
+
+          window.location.href = data.redirectTo;
+        } finally {
+          els.authSubmit.disabled = false;
+        }
+      }
+
+      async function startGoogleSignIn() {
+        els.googleSignIn.disabled = true;
+        els.authMessage.textContent = "";
+
+        try {
+          if (!appConfig.googleOAuthEnabled) {
+            els.authMessage.textContent =
+              "Google OAuth is not configured yet. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.";
+            return;
+          }
+
+          const fields = await oauthFields();
+          const params = new URLSearchParams(fields);
+          window.location.href = `/auth/google/start?${params.toString()}`;
+        } finally {
+          els.googleSignIn.disabled = false;
+        }
+      }
+
+      function showAuthenticated(profile) {
+        currentUser = profile;
+        els.profileName.textContent = profile.name;
+        els.profileEmail.textContent = profile.email;
+        els.authPanel.classList.add("hidden");
+        els.statusPanel.classList.remove("hidden");
+        connectSocket();
+      }
+
+      async function init() {
+        appConfig = await fetch("/config").then((res) => res.json());
+        await exchangeCodeIfPresent();
+        const profile = await loadProfile();
+        if (profile) showAuthenticated(profile);
+      }
+
+      els.signInTab.addEventListener("click", () => switchAuthMode("sign-in"));
+      els.signUpTab.addEventListener("click", () => switchAuthMode("sign-up"));
+      els.authForm.addEventListener("submit", submitAuth);
+      els.googleSignIn.addEventListener("click", startGoogleSignIn);
+      els.startSharing.addEventListener("click", startSharing);
+      els.stopSharing.addEventListener("click", stopSharing);
+      els.logout.addEventListener("click", () => {
+        stopSharing();
+        socket?.disconnect();
+        localStorage.removeItem(tokenKey);
+        window.location.reload();
+      });
+
+      init().catch((error) => showToast(error.message));
+    </script>
+  </body>
+</html>
