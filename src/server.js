@@ -183,10 +183,10 @@ app.post("/auth/sign-in", async (req, res) => {
   }
 });
 
-app.get("/auth/google/start", (req, res) => {
+app.get("/auth/google/start", async (req, res) => {
   try {
     requireOAuthFields(req.query);
-    const redirectTo = createGoogleAuthorizationUrl({
+    const redirectTo = await createGoogleAuthorizationUrl({
       clientId: req.query.client_id,
       redirectUri: req.query.redirect_uri,
       state: req.query.state,
@@ -213,7 +213,7 @@ app.get("/auth/google/callback", async (req, res) => {
       return;
     }
 
-    const localOAuth = consumeGoogleState(state);
+    const localOAuth = await consumeGoogleState(state);
     const googleProfile = await exchangeGoogleCodeForProfile({
       code,
       googleVerifier: localOAuth.googleVerifier,

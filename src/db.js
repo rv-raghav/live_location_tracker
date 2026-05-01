@@ -45,4 +45,17 @@ export async function ensureDatabaseSchema() {
       expires_at TIMESTAMPTZ NOT NULL
     )
   `);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS google_oauth_states (
+      state TEXT PRIMARY KEY,
+      client_id TEXT NOT NULL,
+      redirect_uri TEXT NOT NULL,
+      oauth_state TEXT NOT NULL,
+      code_challenge TEXT,
+      code_challenge_method TEXT,
+      google_verifier TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL
+    )
+  `);
 }

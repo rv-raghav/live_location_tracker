@@ -25,3 +25,14 @@ export const authorizationCodes = pgTable("authorization_codes", {
   codeChallengeMethod: text("code_challenge_method"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
+
+export const googleOAuthStates = pgTable("google_oauth_states", {
+  state: text("state").primaryKey(),
+  clientId: text("client_id").notNull(),
+  redirectUri: text("redirect_uri").notNull(),
+  oauthState: text("oauth_state").notNull(),
+  codeChallenge: text("code_challenge"),
+  codeChallengeMethod: text("code_challenge_method"),
+  googleVerifier: text("google_verifier").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
