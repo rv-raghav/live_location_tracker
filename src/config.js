@@ -57,6 +57,10 @@ const publicBaseUrl = process.env.PUBLIC_BASE_URL ?? renderExternalUrl ?? localB
 export const config = {
   port: numberFromEnv("PORT", 8000),
   publicBaseUrl,
+  database: {
+    url: process.env.DATABASE_URL ?? "",
+    ssl: booleanFromEnv("DATABASE_SSL", true),
+  },
   kafka: {
     clientId: process.env.KAFKA_CLIENT_ID ?? "live-location-tracker",
     brokers: (process.env.KAFKA_BROKERS ?? "localhost:9092")

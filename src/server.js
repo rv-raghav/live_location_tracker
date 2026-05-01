@@ -28,6 +28,7 @@ import {
   isDuplicateEvent,
   normalizeLocationEvent,
 } from "./location-events.js";
+import { ensureDatabaseSchema } from "./db.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -73,12 +74,13 @@ function makeRedirectUrl({ redirectUri, code, state }) {
   return url.toString();
 }
 
-function createLoginRedirect({ user, body }) {
+async function createLoginRedirect({ user, body }) {
   requireOAuthFields(body);
-  const code = createAuthorizationCode({
+  const code = await createAuthorizationCode({
     user,
     clientId: body.client_id,
     redirectUri: body.redirect_uri,
+    state: body.state,
     codeChallenge: body.code_challenge,
     codeChallengeMethod: body.code_challenge_method ?? "S256",
   });
@@ -157,7 +159,7 @@ app.post("/auth/sign-up", async (req, res) => {
 
     const user = await createUser({ name, email, password });
     res.status(201).json({
-      redirectTo: createLoginRedirect({ user, body: req.body }),
+      redirectTo: await createLoginRedirect({ user, body: req.body }),
     });
   } catch (error) {
     res.status(error.statusCode ?? 500).json({ message: error.message });
@@ -174,7 +176,7 @@ app.post("/auth/sign-in", async (req, res) => {
 
     const user = await verifyUser({ email, password });
     res.json({
-      redirectTo: createLoginRedirect({ user, body: req.body }),
+      redirectTo: await createLoginRedirect({ user, body: req.body }),
     });
   } catch (error) {
     res.status(error.statusCode ?? 500).json({ message: error.message });
@@ -223,10 +225,11 @@ app.get("/auth/google/callback", async (req, res) => {
       name: googleProfile.name,
     });
 
-    const localCode = createAuthorizationCode({
+    const localCode = await createAuthorizationCode({
       user,
       clientId: localOAuth.clientId,
       redirectUri: localOAuth.redirectUri,
+      state: localOAuth.state,
       codeChallenge: localOAuth.codeChallenge,
       codeChallengeMethod: localOAuth.codeChallengeMethod,
     });
@@ -251,7 +254,7 @@ app.post("/oauth/token", async (req, res) => {
       return;
     }
 
-    const record = consumeAuthorizationCode(code);
+    const record = await consumeAuthorizationCode(code);
     if (record.clientId !== client_id || record.redirectUri !== redirect_uri) {
       res.status(400).json({ message: "Authorization code was issued to a different client." });
       return;
@@ -316,6 +319,8 @@ io.use((socket, next) => {
 });
 
 async function main() {
+  await ensureDatabaseSchema();
+
   const producer = kafkaClient.producer(producerOptions);
   const consumer = kafkaClient.consumer({
     groupId: `socket-broadcaster-${config.port}`,
