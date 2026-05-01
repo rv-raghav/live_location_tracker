@@ -8,9 +8,11 @@ const kafkaConnection = {
 };
 
 if (config.kafka.ssl) {
-  kafkaConnection.ssl = config.kafka.caCert
-    ? { ca: [config.kafka.caCert] }
-    : true;
+  const sslOptions = {};
+  if (config.kafka.caCert) sslOptions.ca = [config.kafka.caCert];
+  if (config.kafka.clientCert) sslOptions.cert = config.kafka.clientCert;
+  if (config.kafka.clientKey) sslOptions.key = config.kafka.clientKey;
+  kafkaConnection.ssl = Object.keys(sslOptions).length > 0 ? sslOptions : true;
 }
 
 if (config.kafka.username && config.kafka.password) {

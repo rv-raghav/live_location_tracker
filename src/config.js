@@ -66,6 +66,8 @@ export const config = {
     topic: process.env.KAFKA_LOCATION_TOPIC ?? "location-updates",
     ssl: booleanFromEnv("KAFKA_SSL", false),
     caCert: normalizePemFromEnv("KAFKA_CA_CERT"),
+    clientCert: normalizePemFromEnv("KAFKA_CLIENT_CERT"),
+    clientKey: normalizePemFromEnv("KAFKA_CLIENT_KEY"),
     username: process.env.KAFKA_USERNAME ?? "",
     password: process.env.KAFKA_PASSWORD ?? "",
     saslMechanism: process.env.KAFKA_SASL_MECHANISM ?? "plain",
