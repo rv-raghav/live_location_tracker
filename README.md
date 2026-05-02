@@ -32,12 +32,15 @@ live_location_tracker/
   data/                       # Runtime users/history files, ignored by git
 ```
 
+## Live Link
+
+https://live-location-tracker-9gko.onrender.com/
+
 ## Setup Steps
 
 Commands used for this project:
 
 ```bash
-cd /home/raghav/workspace/web_dev_cohort26
 mkdir -p live_location_tracker/src live_location_tracker/public live_location_tracker/data
 cd live_location_tracker
 npm install
@@ -50,7 +53,7 @@ npm run dev
 In a second terminal:
 
 ```bash
-cd /home/raghav/workspace/web_dev_cohort26/live_location_tracker
+/live_location_tracker
 npm run processor
 ```
 
@@ -68,28 +71,28 @@ Google OAuth is optional. The local email/password auth works without Google cre
 
 Copy `.env.example` to `.env`.
 
-| Variable | Purpose | Default |
-| --- | --- | --- |
-| `PORT` | Express and Socket.IO port | `8000` |
-| `PUBLIC_BASE_URL` | Browser-visible app origin | `http://localhost:8000` |
-| `KAFKA_CLIENT_ID` | KafkaJS client ID | `live-location-tracker` |
-| `KAFKA_BROKERS` | Comma-separated Kafka brokers | `localhost:9092` |
-| `KAFKA_LOCATION_TOPIC` | Location event topic | `location-updates` |
-| `KAFKA_SSL` | Enable TLS for managed Kafka | `false` |
-| `KAFKA_USERNAME` | Managed Kafka SASL username/API key | empty |
-| `KAFKA_PASSWORD` | Managed Kafka SASL password/API secret | empty |
-| `KAFKA_SASL_MECHANISM` | Kafka SASL mechanism | `plain` |
-| `OIDC_ISSUER` | JWT issuer claim | `http://localhost:8000` |
-| `OIDC_CLIENT_ID` | Browser OAuth client ID | `live-location-web` |
-| `OIDC_REDIRECT_URI` | OAuth callback URI | `http://localhost:8000/callback` |
-| `TOKEN_TTL_SECONDS` | Token lifetime | `3600` |
-| `GOOGLE_CLIENT_ID` | Google OAuth web client ID | empty |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth web client secret | empty |
-| `GOOGLE_REDIRECT_URI` | Google callback registered in Google Cloud | `http://localhost:8000/auth/google/callback` |
-| `LOCATION_UPDATE_INTERVAL_MS` | Browser send interval | `5000` |
-| `STALE_USER_AFTER_MS` | Remove offline users after this time | `30000` |
-| `MAX_LOCATION_ACCURACY_METERS` | Reject low-quality location payloads | `1000` |
-| `LOCATION_HISTORY_FILE` | JSONL history output | `./data/location-history.jsonl` |
+| Variable                       | Purpose                                    | Default                                      |
+| ------------------------------ | ------------------------------------------ | -------------------------------------------- |
+| `PORT`                         | Express and Socket.IO port                 | `8000`                                       |
+| `PUBLIC_BASE_URL`              | Browser-visible app origin                 | `http://localhost:8000`                      |
+| `KAFKA_CLIENT_ID`              | KafkaJS client ID                          | `live-location-tracker`                      |
+| `KAFKA_BROKERS`                | Comma-separated Kafka brokers              | `localhost:9092`                             |
+| `KAFKA_LOCATION_TOPIC`         | Location event topic                       | `location-updates`                           |
+| `KAFKA_SSL`                    | Enable TLS for managed Kafka               | `false`                                      |
+| `KAFKA_USERNAME`               | Managed Kafka SASL username/API key        | empty                                        |
+| `KAFKA_PASSWORD`               | Managed Kafka SASL password/API secret     | empty                                        |
+| `KAFKA_SASL_MECHANISM`         | Kafka SASL mechanism                       | `plain`                                      |
+| `OIDC_ISSUER`                  | JWT issuer claim                           | `http://localhost:8000`                      |
+| `OIDC_CLIENT_ID`               | Browser OAuth client ID                    | `live-location-web`                          |
+| `OIDC_REDIRECT_URI`            | OAuth callback URI                         | `http://localhost:8000/callback`             |
+| `TOKEN_TTL_SECONDS`            | Token lifetime                             | `3600`                                       |
+| `GOOGLE_CLIENT_ID`             | Google OAuth web client ID                 | empty                                        |
+| `GOOGLE_CLIENT_SECRET`         | Google OAuth web client secret             | empty                                        |
+| `GOOGLE_REDIRECT_URI`          | Google callback registered in Google Cloud | `http://localhost:8000/auth/google/callback` |
+| `LOCATION_UPDATE_INTERVAL_MS`  | Browser send interval                      | `5000`                                       |
+| `STALE_USER_AFTER_MS`          | Remove offline users after this time       | `30000`                                      |
+| `MAX_LOCATION_ACCURACY_METERS` | Reject low-quality location payloads       | `1000`                                       |
+| `LOCATION_HISTORY_FILE`        | JSONL history output                       | `./data/location-history.jsonl`              |
 
 ## OIDC Auth Setup
 
@@ -400,7 +403,7 @@ It batches up to 25 events or flushes every 5 seconds. In production this would 
 Add the final unlisted YouTube demo link here before submission:
 
 ```text
-TODO: https://youtube.com/...
+https://www.youtube.com/watch?v=dbE7jGi69FU
 ```
 
 Suggested demo checklist:
